@@ -55,7 +55,7 @@ Then open `http://localhost:8501` (or the Codespaces forwarded URL for port 8501
 
 - `id` (PK), `project_id` (FK → `projects`), `subject_id` (string id within the project), `indication`, `age`, `sex`, `treatment`, `response`.
 - **Unique constraint:** `(project_id, subject_id)`.
-- **Why:** Demographics and clinical attributes belong to the person, not to each blood draw. Normalizing here removes duplicate subject metadata for every sample row in the CSV.
+- **Why:** Demographics and clinical attributes belong to the person. Normalizing here removes duplicate subject metadata for every sample row in the CSV.
 
 3. `**samples`\*\*
 
@@ -69,9 +69,9 @@ Then open `http://localhost:8501` (or the Codespaces forwarded URL for port 8501
 
 ### Scaling
 
-- **Lots of projects and samples:** For mostly read-only reporting, SQLite is suitable if the indexes line up with how you actually filter (project, subject, sample type, day on study). If you outgrow it—huge concurrency, massive writes, or team-wide dashboards—the same three-table layout drops neatly into Postgres or BigQuery; you keep the keys and joins, swap the engine.
+- **Lots of projects and samples:** For mostly read-only reporting, SQLite is suitable if the indexes line up with how you actually filter (project, subject, sample type, day on study). If you outgrow it with huge concurrency, massive writes, or team-wide dashboards, the same three-table layout drops neatly into Postgres or BigQuery.
 - **Many different analyses:** Counts and measurements live on `samples`; things that describe the person live on `subjects`. That way you are not copy-pasting age, sex, and response onto every blood draw. When you need a new cell type or assay, you can add a column on `samples`, or go full flexible with a skinny `(sample_id, metric, value)` table—trade-off is messier SQL.
-- **Shape of the model:** Think of it as a small star: project → subject → sample. That matches how people ask questions (“which trial,” “which patients,” “which timepoints”). If dashboards get slow, you can pre-aggregate in a warehouse or materialized view without redoing how raw data lands.
+- **Shape of the model:** Think of it as a small star: project → subject → sample. That matches how people ask questions (“which trial,” “which patients,” “which timepoints”).
 
 ---
 
