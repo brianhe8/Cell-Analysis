@@ -181,7 +181,7 @@ def write_report(df: pd.DataFrame, stats_df: pd.DataFrame, out, plot_path: Path)
         )
 
     plot_boxplots(df, plot_path)
-    print(f"\nSaved boxplot figure: {plot_path}", file=out)
+    print(f"\nSaved boxplot figure: {plot_path.name}", file=out)
 
 
 def main() -> None:

@@ -193,25 +193,25 @@ def main() -> None:
             view = st.radio(
                 "View",
                 (
-                    "Project summary",
-                    "Table: projects",
-                    "Table: subjects",
-                    "Table: samples",
+                    "Project Summary",
+                    "Projects",
+                    "Subjects",
+                    "Samples",
                 ),
                 horizontal=True,
                 key="explore_view",
             )
-            if view.startswith("Project summary"):
+            if view.startswith("Project Summary"):
                 ov = cohort_overview()
                 if ov.empty:
                     st.info("No rows.")
                 else:
                     st.dataframe(ov, use_container_width=True)
-            elif view == "Table: projects":
+            elif view == "Projects":
                 df = db_table_projects()
                 st.metric("Rows", f"{len(df):,}")
                 st.dataframe(df, use_container_width=True, hide_index=True)
-            elif view == "Table: subjects":
+            elif view == "Subjects":
                 df = db_table_subjects()
                 st.metric("Rows", f"{len(df):,}")
                 st.dataframe(df, use_container_width=True, hide_index=True)

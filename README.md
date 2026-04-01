@@ -12,7 +12,7 @@ Locally: start the app with `make dashboard` and use the URL Streamlit prints (i
 
 ## Reproduce results (GitHub Codespaces)
 
-1. Open this repository in a Codespace (or clone locally with Python 3.10+).
+1. Open this repository in a Codespace (or clone locally with Python 3.10+). On some Linux images, install Make if needed: `sudo apt-get update && sudo apt-get install -y make`.
 2. From the repository root:
 
 ```bash
@@ -80,7 +80,7 @@ Then open `http://localhost:8501` (or the Codespaces forwarded URL for port 8501
 | `frequency_summary.py` | Part 2: Reads counts from `samples`, emits long-format CSV. Use `-o frequencies.csv` (as in `make pipeline`) or omit `-o` to write to stdout.                                                                |
 | `response_analysis.py` | Part 3: Pandas + SciPy for cohort filter, Mann–Whitney U, Benjamini–Hochberg FDR, and Matplotlib boxplots. Optional `--report FILE` (default stdout); `--plot` sets the PNG path.                            |
 | `subset_analysis.py`   | Part 4: SQL summaries for baseline PBMC melanoma/miraclib cohort. Optional `--report FILE` (default stdout).                                                                                                 |
-| `dashboard.py`         | Streamlit UI: tabs for frequency preview, embedded Part 3 figure and report text, Part 4 report, and a simple project-level explore query. Reads artifacts produced by `make pipeline` so the UI stays thin. |
+| `dashboard.py`         | Streamlit UI: tabs for frequency preview, Part 3 figure and report, Part 4 report, and an **Explore DB** view (project roll-up plus `projects` / `subjects` / `samples` tables). Reads pipeline artifacts and queries `cell_counts.db`. |
 | `Makefile`             | `setup` / `pipeline` / `dashboard` targets for a repeatable workflow in GitHub Codespaces.                                                                                                                  |
 
 **Why split scripts instead of one notebook?** Each part maps to its own script and outputs, CLI runs stay easy to test, and the Makefile runs the full sequence with no manual steps. Population lists and paths are repeated only where needed instead of pulling everything into a shared package layer.
