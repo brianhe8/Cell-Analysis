@@ -1,8 +1,3 @@
-"""
-Interactive dashboard for Cell Analysis pipeline outputs.
-Run via: make dashboard
-"""
-
 from __future__ import annotations
 
 import sqlite3
@@ -45,6 +40,85 @@ def cohort_overview() -> pd.DataFrame:
             """,
             conn,
         )
+    finally:
+        conn.close()
+
+
+@st.cache_data
+def db_table_projects() -> pd.DataFrame:
+    if not DB_PATH.is_file():
+        return pd.DataFrame()
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        return pd.read_sql_query(
+            "SELECT id AS project_pk, code AS project FROM projects ORDER BY code",
+            conn,
+        )
+    finally:
+        conn.close()
+
+
+@st.cache_data
+def db_table_subjects() -> pd.DataFrame:
+    if not DB_PATH.is_file():
+        return pd.DataFrame()
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        return pd.read_sql_query(
+            """
+            SELECT subj.id AS subject_pk,
+                   p.code AS project,
+                   subj.subject_id,
+                   subj.indication,
+                   subj.age,
+                   subj.sex,
+                   subj.treatment,
+                   subj.response
+            FROM subjects subj
+            JOIN projects p ON subj.project_id = p.id
+            ORDER BY p.code, subj.subject_id
+            """,
+            conn,
+        )
+    finally:
+        conn.close()
+
+
+@st.cache_data
+def db_table_samples(limit: int) -> pd.DataFrame:
+    if not DB_PATH.is_file():
+        return pd.DataFrame()
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        return pd.read_sql_query(
+            f"""
+            SELECT s.id AS sample_pk,
+                   p.code AS project,
+                   subj.subject_id,
+                   s.sample_id,
+                   s.sample_type,
+                   s.time_from_treatment_start,
+                   s.b_cell, s.cd8_t_cell, s.cd4_t_cell, s.nk_cell, s.monocyte
+            FROM samples s
+            JOIN subjects subj ON s.subject_id = subj.id
+            JOIN projects p ON subj.project_id = p.id
+            ORDER BY s.sample_id
+            LIMIT {int(limit)}
+            """,
+            conn,
+        )
+    finally:
+        conn.close()
+
+
+@st.cache_data
+def db_count_samples() -> int:
+    if not DB_PATH.is_file():
+        return 0
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        row = conn.execute("SELECT COUNT(*) FROM samples").fetchone()
+        return int(row[0]) if row else 0
     finally:
         conn.close()
 
@@ -108,12 +182,63 @@ def main() -> None:
             st.info("Run `make pipeline` to generate `subset_analysis_report.txt`.")
 
     with tab_explore:
-        st.subheader("Projects in the database")
-        ov = cohort_overview()
-        if ov.empty:
-            st.info("No data. Run `make pipeline`.")
+        st.subheader("Explore database")
+        st.caption(
+            "SQLite tables `projects`, `subjects`, and `samples`. "
+            "The roll-up is a quick summary; other views list table rows."
+        )
+        if not DB_PATH.is_file():
+            st.info("No database. Run `make pipeline`.")
         else:
-            st.dataframe(ov, use_container_width=True)
+            view = st.radio(
+                "View",
+                (
+                    "Project summary (subject & sample counts)",
+                    "Table: projects",
+                    "Table: subjects",
+                    "Table: samples",
+                ),
+                horizontal=True,
+                key="explore_view",
+            )
+            if view.startswith("Project summary"):
+                ov = cohort_overview()
+                if ov.empty:
+                    st.info("No rows.")
+                else:
+                    st.dataframe(ov, use_container_width=True)
+            elif view == "Table: projects":
+                df = db_table_projects()
+                st.metric("Rows", f"{len(df):,}")
+                st.dataframe(df, use_container_width=True, hide_index=True)
+            elif view == "Table: subjects":
+                df = db_table_subjects()
+                st.metric("Rows", f"{len(df):,}")
+                st.dataframe(df, use_container_width=True, hide_index=True)
+            else:
+                total = db_count_samples()
+                if total == 0:
+                    st.info("No samples in the database.")
+                elif total <= 5_000:
+                    df = db_table_samples(total)
+                    st.caption(f"Showing all {total:,} samples.")
+                    st.dataframe(df, use_container_width=True, hide_index=True)
+                else:
+                    cap = min(15_000, total)
+                    default = min(5_000, cap)
+                    max_rows = st.slider(
+                        "Max rows to show",
+                        min_value=500,
+                        max_value=cap,
+                        value=default,
+                        step=500,
+                        help="Samples table is large; capped at 15,000 rows for browser performance.",
+                    )
+                    df = db_table_samples(max_rows)
+                    st.metric("Rows displayed", f"{len(df):,}")
+                    if max_rows < total:
+                        st.caption(f"Total samples in database: {total:,}. Increase the slider to load more (up to {cap:,}).")
+                    st.dataframe(df, use_container_width=True, hide_index=True)
 
 
 if __name__ == "__main__":
