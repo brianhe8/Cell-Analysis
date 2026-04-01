@@ -81,9 +81,9 @@ Then open `http://localhost:8501` (or the Codespaces forwarded URL for port 8501
 | `response_analysis.py` | Part 3: Pandas + SciPy for cohort filter, Mann–Whitney U, Benjamini–Hochberg FDR, and Matplotlib boxplots. Optional `--report FILE` (default stdout); `--plot` sets the PNG path.                            |
 | `subset_analysis.py`   | Part 4: SQL summaries for baseline PBMC melanoma/miraclib cohort. Optional `--report FILE` (default stdout).                                                                                                 |
 | `dashboard.py`         | Streamlit UI: tabs for frequency preview, embedded Part 3 figure and report text, Part 4 report, and a simple project-level explore query. Reads artifacts produced by `make pipeline` so the UI stays thin. |
-| `Makefile`             | `setup` / `pipeline` / `dashboard` targets for reproducible grading in Codespaces.                                                                                                                           |
+| `Makefile`             | `setup` / `pipeline` / `dashboard` targets for a repeatable workflow in GitHub Codespaces.                                                                                                                  |
 
-**Why split scripts instead of one notebook?** Clear separation matches Parts 1–4, keeps CLI runs testable, and lets the Makefile invoke a fixed sequence without manual steps. Shared constants (populations, paths) are duplicated only where needed to avoid an early abstraction layer for a small assignment.
+**Why split scripts instead of one notebook?** Each part maps to its own script and outputs, CLI runs stay easy to test, and the Makefile runs the full sequence with no manual steps. Population lists and paths are repeated only where needed instead of pulling everything into a shared package layer.
 
 ---
 

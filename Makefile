@@ -1,6 +1,6 @@
 .PHONY: setup pipeline dashboard
 
-# GitHub Codespaces: after `make dashboard`, open the forwarded port for 8501 (public if needed).
+# In GitHub Codespaces, forward port 8501 to open the Streamlit URL in a browser.
 
 PYTHON ?= python3
 
