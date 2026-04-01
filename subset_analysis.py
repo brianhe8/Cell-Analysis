@@ -16,13 +16,20 @@ subj.indication = 'melanoma'
   AND s.time_from_treatment_start = 0
 """
 
-SAMPLES_PER_PROJECT = f"""
-SELECT p.code AS project, COUNT(*) AS n_samples
-FROM samples s
-JOIN subjects subj ON s.subject_id = subj.id
-JOIN projects p ON subj.project_id = p.id
-WHERE {BASE_WHERE}
-GROUP BY p.code
+# List every project in `projects`; count is 0 when no rows match the cohort (e.g. prj2 has baseline WB only).
+SAMPLES_PER_PROJECT = """
+SELECT p.code AS project,
+       (
+           SELECT COUNT(*)
+           FROM samples s
+           JOIN subjects subj ON s.subject_id = subj.id
+           WHERE subj.project_id = p.id
+             AND subj.indication = 'melanoma'
+             AND subj.treatment = 'miraclib'
+             AND s.sample_type = 'PBMC'
+             AND s.time_from_treatment_start = 0
+       ) AS n_samples
+FROM projects p
 ORDER BY p.code
 """
 

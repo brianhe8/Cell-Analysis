@@ -3,6 +3,7 @@ Total samples: 656  |  Distinct subjects: 656
 
 Samples per project:
   prj1: 384
+  prj2: 0
   prj3: 272
 
 Subjects by response (responder=yes, non-responder=no):
