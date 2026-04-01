@@ -193,7 +193,7 @@ def main() -> None:
             view = st.radio(
                 "View",
                 (
-                    "Project summary (subject & sample counts)",
+                    "Project summary",
                     "Table: projects",
                     "Table: subjects",
                     "Table: samples",
