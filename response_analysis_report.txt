@@ -11,5 +11,3 @@ Multiple testing: Benjamini–Hochberg FDR; significance at q ≤ 0.05
   Monocyte      n_no= 975  n_yes= 993  median_no=19.94%  median_yes=19.61%  p=0.1632  q_BH=0.2039  significant (FDR)? no
 
 Conclusion: After FDR correction, no population showed a significant difference in relative frequency between responders and non-responders.
-
-Saved boxplot figure: /Users/brianhe/Desktop/projects/Cell Analysis/response_boxplots.png
