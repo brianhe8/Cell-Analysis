@@ -1,0 +1,14 @@
+Cohort: melanoma, treatment=miraclib, sample_type=PBMC, time_from_treatment_start=0 (baseline)
+Total samples: 656  |  Distinct subjects: 656
+
+Samples per project:
+  prj1: 384
+  prj3: 272
+
+Subjects by response (responder=yes, non-responder=no):
+  Non-responder (no): 325
+  Responder (yes): 331
+
+Subjects by sex:
+  Female (F): 312
+  Male (M): 344

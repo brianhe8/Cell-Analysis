@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import sqlite3
 import sys
 from pathlib import Path
@@ -11,7 +12,7 @@ from scipy.stats import mannwhitneyu
 
 ROOT = Path(__file__).resolve().parent
 DB_PATH = ROOT / "cell_counts.db"
-PLOT_PATH = ROOT / "response_boxplots.png"
+DEFAULT_PLOT = ROOT / "response_boxplots.png"
 
 POPULATIONS = ("b_cell", "cd8_t_cell", "cd4_t_cell", "nk_cell", "monocyte")
 
@@ -132,31 +133,19 @@ def plot_boxplots(df: pd.DataFrame, path: Path) -> None:
     plt.close(fig)
 
 
-def main() -> None:
-    if not DB_PATH.is_file():
-        raise SystemExit(f"Missing database: {DB_PATH} (run load_data.py first)")
-
-    conn = sqlite3.connect(DB_PATH)
-    try:
-        df = load_frame(conn)
-    finally:
-        conn.close()
-
-    if df.empty:
-        raise SystemExit("No rows match filters (melanoma, miraclib, PBMC, yes/no).")
-
+def write_report(df: pd.DataFrame, stats_df: pd.DataFrame, out, plot_path: Path) -> None:
+    alpha = 0.05
     print(
         "Cohort: melanoma, treatment=miraclib, sample_type=PBMC, response yes/no\n"
         f"Samples: n={len(df)} "
         f"(non-responders={len(df[df['response'] == 'no'])}, "
-        f"responders={len(df[df['response'] == 'yes'])})\n"
+        f"responders={len(df[df['response'] == 'yes'])})\n",
+        file=out,
     )
-
-    stats_df = run_tests(df)
-    alpha = 0.05
     print(
         "Mann–Whitney U (two-sided): relative frequency (%) vs response group\n"
-        f"Multiple testing: Benjamini–Hochberg FDR; significance at q ≤ {alpha}\n"
+        f"Multiple testing: Benjamini–Hochberg FDR; significance at q ≤ {alpha}\n",
+        file=out,
     )
     for _, r in stats_df.iterrows():
         pop = r["population"]
@@ -171,25 +160,74 @@ def main() -> None:
         print(
             f"  {LABELS[pop]:12}  n_no={int(r['n_no']):4}  n_yes={int(r['n_yes']):4}  "
             f"median_no={r['median_no']:.2f}%  median_yes={r['median_yes']:.2f}%  "
-            f"p={p_str}  q_BH={q_str}  significant (FDR)? {sig}"
+            f"p={p_str}  q_BH={q_str}  significant (FDR)? {sig}",
+            file=out,
         )
 
     significant = stats_df[stats_df["q_bh"].notna() & (stats_df["q_bh"] <= alpha)]
-    print()
+    print(file=out)
     if significant.empty:
         print(
             "Conclusion: After FDR correction, no population showed a significant "
-            "difference in relative frequency between responders and non-responders."
+            "difference in relative frequency between responders and non-responders.",
+            file=out,
         )
     else:
         names = ", ".join(LABELS[p] for p in significant["population"])
         print(
             "Conclusion: The following populations differ significantly between "
-            f"groups (Mann–Whitney U, FDR q ≤ {alpha}): {names}."
+            f"groups (Mann–Whitney U, FDR q ≤ {alpha}): {names}.",
+            file=out,
         )
 
-    plot_boxplots(df, PLOT_PATH)
-    print(f"\nSaved boxplot figure: {PLOT_PATH}")
+    plot_boxplots(df, plot_path)
+    print(f"\nSaved boxplot figure: {plot_path}", file=out)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Part 3: responder vs non-responder PBMC frequencies (melanoma + miraclib)."
+    )
+    parser.add_argument(
+        "--report",
+        type=Path,
+        default=None,
+        metavar="FILE",
+        help="Write statistical report to this file (UTF-8). Default: stdout.",
+    )
+    parser.add_argument(
+        "--plot",
+        type=Path,
+        default=DEFAULT_PLOT,
+        metavar="FILE",
+        help=f"Boxplot image path (default: {DEFAULT_PLOT.name}).",
+    )
+    args = parser.parse_args()
+
+    plot_path = args.plot if args.plot.is_absolute() else ROOT / args.plot
+    report_path = args.report
+    if report_path is not None and not report_path.is_absolute():
+        report_path = ROOT / report_path
+
+    if not DB_PATH.is_file():
+        raise SystemExit(f"Missing database: {DB_PATH} (run load_data.py first)")
+
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        df = load_frame(conn)
+    finally:
+        conn.close()
+
+    if df.empty:
+        raise SystemExit("No rows match filters (melanoma, miraclib, PBMC, yes/no).")
+
+    stats_df = run_tests(df)
+
+    if report_path is None:
+        write_report(df, stats_df, sys.stdout, plot_path)
+    else:
+        with open(report_path, "w", encoding="utf-8") as out:
+            write_report(df, stats_df, out, plot_path)
 
 
 if __name__ == "__main__":

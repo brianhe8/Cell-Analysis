@@ -1,0 +1,15 @@
+Cohort: melanoma, treatment=miraclib, sample_type=PBMC, response yes/no
+Samples: n=1968 (non-responders=975, responders=993)
+
+Mann–Whitney U (two-sided): relative frequency (%) vs response group
+Multiple testing: Benjamini–Hochberg FDR; significance at q ≤ 0.05
+
+  B cell        n_no= 975  n_yes= 993  median_no=9.79%  median_yes=9.43%  p=0.0557  q_BH=0.1393  significant (FDR)? no
+  CD8+ T cell   n_no= 975  n_yes= 993  median_no=24.60%  median_yes=24.73%  p=0.6391  q_BH=0.6391  significant (FDR)? no
+  CD4+ T cell   n_no= 975  n_yes= 993  median_no=29.66%  median_yes=30.22%  p=0.01334  q_BH=0.06672  significant (FDR)? no
+  NK cell       n_no= 975  n_yes= 993  median_no=14.80%  median_yes=14.51%  p=0.1211  q_BH=0.2018  significant (FDR)? no
+  Monocyte      n_no= 975  n_yes= 993  median_no=19.94%  median_yes=19.61%  p=0.1632  q_BH=0.2039  significant (FDR)? no
+
+Conclusion: After FDR correction, no population showed a significant difference in relative frequency between responders and non-responders.
+
+Saved boxplot figure: /Users/brianhe/Desktop/projects/Cell Analysis/response_boxplots.png

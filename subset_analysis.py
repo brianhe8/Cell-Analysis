@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import argparse
 import sqlite3
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
@@ -55,58 +57,83 @@ WHERE {BASE_WHERE}
 """
 
 
+def run_report(conn: sqlite3.Connection, out) -> None:
+    n_samples = conn.execute(TOTAL_SAMPLES).fetchone()[0]
+    n_subjects = conn.execute(TOTAL_SUBJECTS).fetchone()[0]
+
+    if n_samples == 0:
+        raise SystemExit(
+            "No rows match: melanoma, miraclib, PBMC, time_from_treatment_start=0."
+        )
+
+    print(
+        "Cohort: melanoma, treatment=miraclib, sample_type=PBMC, "
+        "time_from_treatment_start=0 (baseline)\n"
+        f"Total samples: {n_samples}  |  Distinct subjects: {n_subjects}\n",
+        file=out,
+    )
+
+    print("Samples per project:", file=out)
+    for row in conn.execute(SAMPLES_PER_PROJECT):
+        print(f"  {row['project']}: {row['n_samples']}", file=out)
+    print(file=out)
+
+    print("Subjects by response (responder=yes, non-responder=no):", file=out)
+    response_rows = list(conn.execute(SUBJECTS_BY_RESPONSE))
+    label_map = {"yes": "Responder (yes)", "no": "Non-responder (no)"}
+    for row in response_rows:
+        r = row["response"] or "(empty)"
+        label = label_map.get(row["response"], f"Other ({r})")
+        print(f"  {label}: {row['n_subjects']}", file=out)
+    print(file=out)
+
+    print("Subjects by sex:", file=out)
+    sex_rows = list(conn.execute(SUBJECTS_BY_SEX))
+    sex_label = {"M": "Male (M)", "F": "Female (F)"}
+    for row in sex_rows:
+        s = row["sex"] or "(empty)"
+        label = sex_label.get(row["sex"], f"Other ({s})")
+        print(f"  {label}: {row['n_subjects']}", file=out)
+
+    resp_sum = sum(r["n_subjects"] for r in response_rows)
+    sex_sum = sum(r["n_subjects"] for r in sex_rows)
+    if resp_sum != n_subjects or sex_sum != n_subjects:
+        print(
+            "\nNote: sums above may differ from distinct subjects if any subject "
+            "has multiple response or sex values across joined rows (unexpected "
+            "for this schema).",
+            file=out,
+        )
+
+
 def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Part 4: baseline (day 0) PBMC subset — melanoma + miraclib."
+    )
+    parser.add_argument(
+        "--report",
+        type=Path,
+        default=None,
+        metavar="FILE",
+        help="Write report to this file (UTF-8). Default: stdout.",
+    )
+    args = parser.parse_args()
+
+    report_path = args.report
+    if report_path is not None and not report_path.is_absolute():
+        report_path = ROOT / report_path
+
     if not DB_PATH.is_file():
         raise SystemExit(f"Missing database: {DB_PATH} (run load_data.py first)")
 
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     try:
-        n_samples = conn.execute(TOTAL_SAMPLES).fetchone()[0]
-        n_subjects = conn.execute(TOTAL_SUBJECTS).fetchone()[0]
-
-        if n_samples == 0:
-            raise SystemExit(
-                "No rows match: melanoma, miraclib, PBMC, time_from_treatment_start=0."
-            )
-
-        print(
-            "Cohort: melanoma, treatment=miraclib, sample_type=PBMC, "
-            "time_from_treatment_start=0 (baseline)\n"
-            f"Total samples: {n_samples}  |  Distinct subjects: {n_subjects}\n"
-        )
-
-        print("Samples per project:")
-        for row in conn.execute(SAMPLES_PER_PROJECT):
-            print(f"  {row['project']}: {row['n_samples']}")
-        print()
-
-        print("Subjects by response (responder=yes, non-responder=no):")
-        response_rows = list(conn.execute(SUBJECTS_BY_RESPONSE))
-        label_map = {"yes": "Responder (yes)", "no": "Non-responder (no)"}
-        for row in response_rows:
-            r = row["response"] or "(empty)"
-            label = label_map.get(row["response"], f"Other ({r})")
-            print(f"  {label}: {row['n_subjects']}")
-        print()
-
-        print("Subjects by sex:")
-        sex_rows = list(conn.execute(SUBJECTS_BY_SEX))
-        sex_label = {"M": "Male (M)", "F": "Female (F)"}
-        for row in sex_rows:
-            s = row["sex"] or "(empty)"
-            label = sex_label.get(row["sex"], f"Other ({s})")
-            print(f"  {label}: {row['n_subjects']}")
-
-        # Sanity check: subject counts should partition (each subject one response/sex).
-        resp_sum = sum(r["n_subjects"] for r in response_rows)
-        sex_sum = sum(r["n_subjects"] for r in sex_rows)
-        if resp_sum != n_subjects or sex_sum != n_subjects:
-            print(
-                "\nNote: sums above may differ from distinct subjects if any subject "
-                "has multiple response or sex values across joined rows (unexpected "
-                "for this schema)."
-            )
+        if report_path is None:
+            run_report(conn, sys.stdout)
+        else:
+            with open(report_path, "w", encoding="utf-8") as out:
+                run_report(conn, out)
     finally:
         conn.close()
 
