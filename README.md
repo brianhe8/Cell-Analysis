@@ -1,6 +1,6 @@
 # Cell Analysis
 
-Python pipeline and interactive dashboard for normalizing clinical trial cell-count data into SQLite, computing population frequencies, statistical comparisons (Part 3), and baseline cohort summaries (Part 4).
+Python pipeline and interactive dashboard for normalizing clinical trial cell-count data into SQLite, computing population frequencies, statistical comparisons, and baseline cohort summaries.
 
 ## Live dashboard link
 
@@ -22,6 +22,7 @@ make pipeline
 
 1. **Outputs produced by `make pipeline`**
 
+
 | Artifact                       | Description                                                         |
 | ------------------------------ | ------------------------------------------------------------------- |
 | `cell_counts.db`               | SQLite database (Part 1)                                            |
@@ -30,7 +31,8 @@ make pipeline
 | `response_analysis_report.txt` | Console statistics from Part 3 (Mann–Whitney, FDR)                  |
 | `subset_analysis_report.txt`   | Baseline subset counts (Part 4)                                     |
 
-2. **Dashboard**
+
+1. **Dashboard**
 
 ```bash
 make dashboard
@@ -46,18 +48,18 @@ Then open `http://localhost:8501` (or the Codespaces forwarded URL for port 8501
 
 ### Tables
 
-1. `**projects`\*\*
+1. `**projects`
 
 - `id` (PK), `code` (unique trial/study identifier, e.g. `prj1`).
 - **Why:** Many rows share the same project; storing it once avoids repeating long codes and gives a stable foreign key for partitioning data by study.
 
-2. `**subjects`\*\*
+1. `**subjects`
 
 - `id` (PK), `project_id` (FK → `projects`), `subject_id` (string id within the project), `indication`, `age`, `sex`, `treatment`, `response`.
 - **Unique constraint:** `(project_id, subject_id)`.
 - **Why:** Demographics and clinical attributes belong to the person. Normalizing here removes duplicate subject metadata for every sample row in the CSV.
 
-3. `**samples`\*\*
+1. `**samples`
 
 - `id` (PK), `subject_id` (FK → `subjects`), `sample_id` (unique), `sample_type`, `time_from_treatment_start`, and five integer count columns: `b_cell`, `cd8_t_cell`, `cd4_t_cell`, `nk_cell`, `monocyte`.
 - **Why:** Each row is one biological specimen at one timepoint; counts are facts about that sample. Linking to `subjects` keeps analytics join-friendly (filter by indication, treatment, response, then aggregate samples).
@@ -77,6 +79,7 @@ Then open `http://localhost:8501` (or the Codespaces forwarded URL for port 8501
 
 ## Code structure and design choices
 
+
 | Module                 | Role                                                                                                                                                                                                                                    |
 | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `load_data.py`         | Part 1: (Re)creates schema, loads `cell-count.csv` into `cell_counts.db`. Single script so ingestion is one command and always matches the defined schema.                                                                              |
@@ -86,16 +89,19 @@ Then open `http://localhost:8501` (or the Codespaces forwarded URL for port 8501
 | `dashboard.py`         | Streamlit UI: tabs for frequency preview, Part 3 figure and report, Part 4 report, and an **Explore DB** view (project roll-up plus `projects` / `subjects` / `samples` tables). Reads pipeline artifacts and queries `cell_counts.db`. |
 | `Makefile`             | `setup` / `pipeline` / `dashboard` targets for a repeatable workflow in GitHub Codespaces.                                                                                                                                              |
 
-**Why split scripts instead of one notebook?** Each part maps to its own script and outputs, CLI runs stay easy to test, and the Makefile runs the full sequence with no manual steps. Population lists and paths are repeated only where needed instead of pulling everything into a shared package layer.
+
+**Why split scripts instead of one notebook?** Each part maps to its own script and outputs and the Makefile runs the full sequence with no manual steps.
 
 ---
 
 ## Makefile targets
+
 
 | Target           | Behavior                                                                            |
 | ---------------- | ----------------------------------------------------------------------------------- |
 | `make setup`     | Installs dependencies from `requirements.txt`.                                      |
 | `make pipeline`  | Runs `load_data.py`, writes `frequencies.csv`, Part 3 plot + report, Part 4 report. |
 | `make dashboard` | Starts Streamlit on `0.0.0.0:8501` for local or Codespaces access.                  |
+
 
 Override the interpreter if needed: `make setup PYTHON=python`.
